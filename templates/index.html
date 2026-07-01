@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Explorer</title>
+    <meta name="description" content="Explore, filter, and share Google Cloud BigQuery release notes instantly.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-area">
+                    <div class="logo-icon">
+                        <i data-lucide="database"></i>
+                        <span class="logo-pulse"></span>
+                    </div>
+                    <div>
+                        <h1>BQ Radar</h1>
+                        <span class="logo-subtitle">BigQuery Release Explorer</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- Sync Control -->
+                <div class="control-card glass">
+                    <div class="control-header">
+                        <span class="control-label">Feed Status</span>
+                        <div class="status-indicator online" id="statusIndicator">
+                            <span class="dot"></span>
+                            <span class="status-text">Connected</span>
+                        </div>
+                    </div>
+                    <div class="sync-info">
+                        <span class="info-label">Last Synced</span>
+                        <span class="info-value" id="lastUpdatedTime">Never</span>
+                    </div>
+                    <button id="refreshBtn" class="btn btn-primary btn-full">
+                        <i data-lucide="refresh-cw" class="icon-spin-target"></i>
+                        <span>Refresh Notes</span>
+                    </button>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="control-card glass">
+                    <span class="control-label">Search & Filter</span>
+                    <div class="search-box">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="searchInput" placeholder="Search keywords..." autocomplete="off">
+                        <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="filter-group">
+                        <span class="group-label">Category Filters</span>
+                        <div class="category-filters" id="categoryFiltersContainer">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Tweet Composer -->
+                <div class="control-card glass tweet-composer-card" id="tweetComposer">
+                    <div class="composer-header">
+                        <span class="control-label"><i data-lucide="twitter" class="twitter-icon-header"></i> Tweet Composer</span>
+                        <button id="closeComposerBtn" class="close-composer-btn">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+                    <p class="composer-hint">Draft your tweet for the selected update below:</p>
+                    <div class="textarea-wrapper">
+                        <textarea id="tweetText" rows="5" maxlength="400" placeholder="Select a release note to draft a tweet..."></textarea>
+                        <div class="char-counter" id="charCounter">0 / 280</div>
+                    </div>
+                    <div class="composer-actions">
+                        <button id="tweetBtn" class="btn btn-twitter btn-full" disabled>
+                            <i data-lucide="send"></i>
+                            <span>Share on X</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Designed for BigQuery Engineers</p>
+                <p class="version">v1.0.0</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-left">
+                    <h2>Release Feed</h2>
+                    <p class="feed-count" id="feedCount">Showing 0 updates</p>
+                </div>
+                <div class="header-right">
+                    <div class="view-toggles">
+                        <button class="view-btn active" id="viewGridBtn" title="Grid View">
+                            <i data-lucide="layout-grid"></i>
+                        </button>
+                        <button class="view-btn" id="viewListBtn" title="List View">
+                            <i data-lucide="list"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Loading Skeleton -->
+            <div class="skeleton-container" id="skeletonContainer">
+                <!-- 6 skeleton cards -->
+                <div class="skeleton-card glass"></div>
+                <div class="skeleton-card glass"></div>
+                <div class="skeleton-card glass"></div>
+                <div class="skeleton-card glass"></div>
+                <div class="skeleton-card glass"></div>
+                <div class="skeleton-card glass"></div>
+            </div>
+
+            <!-- Error State -->
+            <div class="error-container glass" id="errorContainer" style="display: none;">
+                <div class="error-icon-wrapper">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <h3>Failed to Load Feed</h3>
+                <p id="errorMessage">Something went wrong while retrieving release notes.</p>
+                <button id="retryBtn" class="btn btn-secondary">
+                    <i data-lucide="refresh-cw"></i> Retry
+                </button>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-container glass" id="emptyContainer" style="display: none;">
+                <div class="empty-icon-wrapper">
+                    <i data-lucide="search-code"></i>
+                </div>
+                <h3>No Updates Found</h3>
+                <p>Try adjusting your search keywords or category filters.</p>
+                <button id="resetFiltersBtn" class="btn btn-secondary">
+                    Clear Filters
+                </button>
+            </div>
+
+            <!-- Grid/List container for updates -->
+            <div class="releases-feed grid-view" id="releasesFeed" style="display: none;">
+                <!-- Populated by JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-notification" id="toast">
+        <i data-lucide="info" class="toast-icon"></i>
+        <span class="toast-message" id="toastMessage">Done!</span>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
