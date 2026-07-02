@@ -81,7 +81,15 @@
                     <p class="composer-hint">Draft your tweet for the selected update below:</p>
                     <div class="textarea-wrapper">
                         <textarea id="tweetText" rows="5" maxlength="400" placeholder="Select a release note to draft a tweet..."></textarea>
-                        <div class="char-counter" id="charCounter">0 / 280</div>
+                        <div class="composer-footer-row">
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="20" height="20">
+                                    <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.12)" stroke-width="2" fill="transparent" r="8" cx="10" cy="10"/>
+                                    <circle class="progress-ring__circle" id="progressRingCircle" stroke="var(--color-twitter)" stroke-width="2.5" fill="transparent" r="8" cx="10" cy="10" stroke-dasharray="50.26" stroke-dashoffset="50.26"/>
+                                </svg>
+                            </div>
+                            <div class="char-counter" id="charCounter">0 / 280</div>
+                        </div>
                     </div>
                     <div class="composer-actions">
                         <button id="tweetBtn" class="btn btn-twitter btn-full" disabled>

@@ -371,7 +371,7 @@ function renderUpdates() {
             const copyBtn = e.target.closest('.copy-btn-inline');
             if (copyBtn) {
                 e.stopPropagation();
-                copyToClipboard(up);
+                copyToClipboard(up, copyBtn);
                 return;
             }
             
@@ -493,18 +493,40 @@ function handleTweetTextChange() {
     const len = text.length;
     elements.charCounter.textContent = `${len} / 280`;
     
-    if (len === 0) {
-        elements.charCounter.className = 'char-counter';
-        elements.tweetBtn.disabled = true;
-    } else if (len > 280) {
-        elements.charCounter.className = 'char-counter error';
-        elements.tweetBtn.disabled = true; // Disable if too long
-    } else if (len > 240) {
-        elements.charCounter.className = 'char-counter warning';
-        elements.tweetBtn.disabled = false;
+    const circle = document.getElementById('progressRingCircle');
+    if (circle) {
+        const circumference = 50.26;
+        const percentage = Math.min(len / 280, 1);
+        const offset = circumference - (percentage * circumference);
+        circle.style.strokeDashoffset = offset;
+        
+        if (len > 280) {
+            circle.style.stroke = '#ef4444'; // Red for limit error
+            elements.charCounter.className = 'char-counter error';
+            elements.tweetBtn.disabled = true;
+        } else if (len > 240) {
+            circle.style.stroke = '#f59e0b'; // Amber for warning
+            elements.charCounter.className = 'char-counter warning';
+            elements.tweetBtn.disabled = false;
+        } else {
+            circle.style.stroke = 'var(--color-twitter)'; // Twitter Blue
+            elements.charCounter.className = 'char-counter';
+            elements.tweetBtn.disabled = len === 0;
+        }
     } else {
-        elements.charCounter.className = 'char-counter';
-        elements.tweetBtn.disabled = false;
+        if (len === 0) {
+            elements.charCounter.className = 'char-counter';
+            elements.tweetBtn.disabled = true;
+        } else if (len > 280) {
+            elements.charCounter.className = 'char-counter error';
+            elements.tweetBtn.disabled = true;
+        } else if (len > 240) {
+            elements.charCounter.className = 'char-counter warning';
+            elements.tweetBtn.disabled = false;
+        } else {
+            elements.charCounter.className = 'char-counter';
+            elements.tweetBtn.disabled = false;
+        }
     }
 }
 
@@ -554,12 +576,29 @@ function showToast(message, isWarning = false) {
 }
 
 // Copy to Clipboard Action
-function copyToClipboard(update) {
+function copyToClipboard(update, button) {
     const plainText = stripHtml(update.content).trim().replace(/\s+/g, ' ');
     const copyText = `📢 BigQuery ${update.type} (${update.date}):\n${plainText}\n\nRead more: ${update.link}`;
     
     navigator.clipboard.writeText(copyText)
-        .then(() => showToast("Copied release note to clipboard!"))
+        .then(() => {
+            showToast("Copied release note to clipboard!");
+            if (button) {
+                const icon = button.querySelector('i');
+                if (icon) {
+                    const originalIcon = icon.getAttribute('data-lucide');
+                    icon.setAttribute('data-lucide', 'check');
+                    icon.style.color = '#10b981'; // Success Green
+                    lucide.createIcons();
+                    
+                    setTimeout(() => {
+                        icon.setAttribute('data-lucide', originalIcon);
+                        icon.style.color = '';
+                        lucide.createIcons();
+                    }, 1500);
+                }
+            }
+        })
         .catch(err => {
             console.error("Clipboard copy error:", err);
             showToast("Failed to copy content.", true);

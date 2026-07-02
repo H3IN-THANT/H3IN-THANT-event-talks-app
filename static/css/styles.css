@@ -560,11 +560,32 @@ body.light-theme .main-content::-webkit-scrollbar-thumb:hover {
     border-color: var(--color-twitter);
 }
 
+.composer-footer-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.progress-ring-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring__circle {
+    transition: stroke-dashoffset 0.1s ease, stroke var(--transition-speed) ease;
+}
+
 .char-counter {
-    text-align: right;
     font-size: 11px;
     color: var(--text-muted);
-    margin-top: 4px;
+    font-weight: 500;
 }
 
 .char-counter.warning {
@@ -1183,4 +1204,8 @@ body.light-theme .toast-notification {
 
 body.light-theme .toast-message {
     color: #0f172a;
+}
+
+body.light-theme .progress-ring__circle-bg {
+    stroke: rgba(0, 0, 0, 0.08);
 }
