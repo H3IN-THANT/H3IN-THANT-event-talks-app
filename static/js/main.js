@@ -31,6 +31,8 @@ const elements = {
     feedCount: document.getElementById('feedCount'),
     viewGridBtn: document.getElementById('viewGridBtn'),
     viewListBtn: document.getElementById('viewListBtn'),
+    exportCsvBtn: document.getElementById('exportCsvBtn'),
+    themeToggleBtn: document.getElementById('themeToggleBtn'),
     toast: document.getElementById('toast'),
     toastMessage: document.getElementById('toastMessage')
 };
@@ -43,6 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // App Initiation
 async function initApp() {
+    const savedTheme = localStorage.getItem('bq_theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+    }
     state.viewMode = localStorage.getItem('bq_view_mode') || 'grid';
     updateViewToggleUI();
     await fetchReleases(false);
@@ -64,6 +70,10 @@ function setupEventListeners() {
     
     // Reset Filters
     elements.resetFiltersBtn.addEventListener('click', resetFilters);
+    
+    // Export & Theme
+    elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    elements.themeToggleBtn.addEventListener('click', toggleTheme);
     
     // Tweet Composer
     elements.tweetText.addEventListener('input', handleTweetTextChange);
@@ -337,6 +347,9 @@ function renderUpdates() {
                     <i data-lucide="external-link" style="width:12px;height:12px;"></i>
                 </a>
                 <div class="card-actions-right">
+                    <button class="card-action-btn copy-btn-inline" title="Copy release content to clipboard">
+                        <i data-lucide="copy" style="width:16px;height:16px;"></i>
+                    </button>
                     <button class="card-action-btn select-btn-inline ${state.selectedId === up.id ? 'selected' : ''}" title="Select update to draft Tweet">
                         <i data-lucide="check-square" style="width:16px;height:16px;"></i>
                     </button>
@@ -351,6 +364,14 @@ function renderUpdates() {
         card.addEventListener('click', (e) => {
             // If user clicked inside an anchor tag, don't trigger selection
             if (e.target.tagName === 'A' || e.target.closest('a')) {
+                return;
+            }
+            
+            // Check if copy button was clicked
+            const copyBtn = e.target.closest('.copy-btn-inline');
+            if (copyBtn) {
+                e.stopPropagation();
+                copyToClipboard(up);
                 return;
             }
             
@@ -530,4 +551,71 @@ function showToast(message, isWarning = false) {
     state.toastTimeout = setTimeout(() => {
         elements.toast.classList.remove('active');
     }, 3500);
+}
+
+// Copy to Clipboard Action
+function copyToClipboard(update) {
+    const plainText = stripHtml(update.content).trim().replace(/\s+/g, ' ');
+    const copyText = `📢 BigQuery ${update.type} (${update.date}):\n${plainText}\n\nRead more: ${update.link}`;
+    
+    navigator.clipboard.writeText(copyText)
+        .then(() => showToast("Copied release note to clipboard!"))
+        .catch(err => {
+            console.error("Clipboard copy error:", err);
+            showToast("Failed to copy content.", true);
+        });
+}
+
+// Filter List Query Helper
+function getFilteredUpdatesList() {
+    return state.updates.filter(up => {
+        const matchesCategory = state.currentCategory === 'All' || up.type === state.currentCategory;
+        const plainText = stripHtml(up.content).toLowerCase();
+        const matchesSearch = !state.searchQuery || 
+                             up.date.toLowerCase().includes(state.searchQuery) ||
+                             up.type.toLowerCase().includes(state.searchQuery) ||
+                             plainText.includes(state.searchQuery);
+        return matchesCategory && matchesSearch;
+    });
+}
+
+// Export to CSV Action
+function exportToCSV() {
+    const filtered = getFilteredUpdatesList();
+    if (filtered.length === 0) {
+        showToast("No updates match the current search/filters.", true);
+        return;
+    }
+    
+    const csvRows = [];
+    // Header row
+    csvRows.push(["ID", "Date", "Category", "URL", "Description"].map(h => `"${h.replace(/"/g, '""')}"`).join(","));
+    
+    filtered.forEach(up => {
+        const id = up.id.replace(/"/g, '""');
+        const date = up.date.replace(/"/g, '""');
+        const type = up.type.replace(/"/g, '""');
+        const link = up.link.replace(/"/g, '""');
+        const content = stripHtml(up.content).trim().replace(/\s+/g, ' ').replace(/"/g, '""');
+        
+        csvRows.push([`"${id}"`, `"${date}"`, `"${type}"`, `"${link}"`, `"${content}"`].join(","));
+    });
+    
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bq_releases_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Exported ${filtered.length} updates to CSV!`);
+}
+
+// Theme Toggle Action
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('bq_theme', isLight ? 'light' : 'dark');
+    showToast(`Switched to ${isLight ? 'Light' : 'Dark'} Mode!`);
 }
